@@ -1,4 +1,5 @@
 import os
+import logging
 from pathlib import Path
 
 from aiogram import F, Router
@@ -12,6 +13,7 @@ from app.utils.files import DATA_DIR, safe_rmdir, safe_unlink
 
 router = Router()
 POPPLER_PATH = os.getenv("POPPLER_PATH")
+logger = logging.getLogger(__name__)
 
 
 def build_keyboard() -> InlineKeyboardMarkup:
@@ -99,6 +101,7 @@ async def convert_choice(callback: CallbackQuery) -> None:
 
         await callback.message.answer("Bu format hozircha yo‘q.")
         await callback.answer()
-    except Exception:
+    except Exception as e:
+        logger.exception("convert error: %s", e)
         await callback.message.answer("Xatolik bo‘ldi. Keyinroq urinib ko‘ring.")
         await callback.answer()
