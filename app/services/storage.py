@@ -16,6 +16,7 @@ def init_db() -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             local_path TEXT NOT NULL,
+            file_name TEXT NOT NULL,
             status TEXT NOT NULL,
             created_at TEXT NOT NULL
         )
@@ -23,18 +24,23 @@ def init_db() -> None:
     )
     cur.execute("PRAGMA table_info(uploads)")
     columns = {row[1] for row in cur.fetchall()}
+    if "file_name" not in columns:
+        cur.execute("ALTER TABLE uploads ADD COLUMN file_name TEXT NOT NULL DEFAULT ''")
     if "status" not in columns:
         cur.execute("ALTER TABLE uploads ADD COLUMN status TEXT NOT NULL DEFAULT 'queued'")
     conn.commit()
     conn.close()
 
 
-def save_upload(user_id: int, local_path: str, status: str = "queued") -> None:
+def save_upload(user_id: int, local_path: str, file_name: str, status: str = "queued") -> None:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO uploads (user_id, local_path, status, created_at) VALUES (?, ?, ?, ?)",
-        (user_id, local_path, status, datetime.utcnow().isoformat()),
+        """
+        INSERT INTO uploads (user_id, local_path, file_name, status, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (user_id, local_path, file_name, status, datetime.utcnow().isoformat()),
     )
     conn.commit()
     conn.close()
@@ -82,3 +88,23 @@ def get_last_status(user_id: int) -> str | None:
     row = cur.fetchone()
     conn.close()
     return row[0] if row else None
+
+
+def get_last_info(user_id: int) -> tuple[str | None, str | None]:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT status, file_name
+        FROM uploads
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (user_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return None, None
+    return row[0], row[1]

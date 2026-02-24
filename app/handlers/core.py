@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from aiogram.types.input_file import FSInputFile
 
 from app.services.conversion import pdf_to_png_zip, png_to_pdf
-from app.services.storage import get_last_upload, save_upload, update_status, get_last_status
+from app.services.storage import get_last_upload, save_upload, update_status, get_last_info
 from app.utils.files import DATA_DIR, safe_rmdir, safe_unlink
 
 router = Router()
@@ -47,11 +47,11 @@ async def help_handler(message: Message) -> None:
 
 @router.message(Command("status"))
 async def status_handler(message: Message) -> None:
-    status = get_last_status(message.from_user.id)
+    status, file_name = get_last_info(message.from_user.id)
     if not status:
         await message.answer("Hali hech narsa yo‘q.")
         return
-    await message.answer(f"Oxirgi holat: {status}")
+    await message.answer(f"Oxirgi holat: {status}\nFayl: {file_name}")
 
 
 @router.message(F.document)
@@ -66,7 +66,7 @@ async def file_handler(message: Message) -> None:
     file = await message.bot.get_file(doc.file_id)
     await message.bot.download_file(file.file_path, destination=file_path)
 
-    save_upload(message.from_user.id, str(file_path))
+    save_upload(message.from_user.id, str(file_path), file_name)
     await message.answer(f"Qabul qilindi: {file_name}")
     await message.answer("Format tanlang:", reply_markup=build_keyboard())
 
@@ -83,7 +83,7 @@ async def photo_handler(message: Message) -> None:
     file = await message.bot.get_file(photo.file_id)
     await message.bot.download_file(file.file_path, destination=file_path)
 
-    save_upload(message.from_user.id, str(file_path))
+    save_upload(message.from_user.id, str(file_path), file_name)
     await message.answer("Format tanlang:", reply_markup=build_keyboard())
 
 
