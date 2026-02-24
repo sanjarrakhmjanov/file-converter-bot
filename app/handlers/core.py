@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from aiogram.types.input_file import FSInputFile
 
 from app.services.conversion import pdf_to_png_zip, png_to_pdf
-from app.services.storage import get_last_upload, save_upload
+from app.services.storage import get_last_upload, save_upload, update_status
 from app.utils.files import DATA_DIR, safe_rmdir, safe_unlink
 
 router = Router()
@@ -88,11 +88,14 @@ async def convert_choice(callback: CallbackQuery) -> None:
             await callback.answer()
             return
 
+        update_status(user_id, "processing")
+
         if callback.data == "convert:png2pdf":
             pdf_path = png_to_pdf(src_path)
             await callback.message.answer_document(document=FSInputFile(pdf_path))
             safe_unlink(Path(src_path))
             safe_unlink(Path(pdf_path))
+            update_status(user_id, "done")
             await callback.answer()
             return
 
@@ -110,12 +113,15 @@ async def convert_choice(callback: CallbackQuery) -> None:
                 safe_unlink(p)
             safe_unlink(zip_path)
             safe_rmdir(out_dir)
+            update_status(user_id, "done")
             await callback.answer()
             return
 
+        update_status(user_id, "error")
         await callback.message.answer("Bu format hozircha yo‘q.")
         await callback.answer()
     except Exception as e:
+        update_status(callback.from_user.id, "error")
         logger.exception("convert error: %s", e)
         await callback.message.answer("Xatolik bo‘ldi. Keyinroq urinib ko‘ring.")
         await callback.answer()
