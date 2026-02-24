@@ -63,38 +63,42 @@ async def photo_handler(message: Message) -> None:
 
 @router.callback_query(F.data.startswith("convert:"))
 async def convert_choice(callback: CallbackQuery) -> None:
-    user_id = callback.from_user.id
-    src_path = get_last_upload(user_id)
+    try:
+        user_id = callback.from_user.id
+        src_path = get_last_upload(user_id)
 
-    if not src_path:
-        await callback.message.answer("Oldin fayl yuboring.")
-        await callback.answer()
-        return
-
-    if callback.data == "convert:png2pdf":
-        pdf_path = png_to_pdf(src_path)
-        await callback.message.answer_document(document=FSInputFile(pdf_path))
-        safe_unlink(Path(src_path))
-        safe_unlink(Path(pdf_path))
-        await callback.answer()
-        return
-
-    if callback.data == "convert:pdf2png":
-        if not src_path.lower().endswith(".pdf"):
-            await callback.message.answer("Bu fayl PDF emas.")
+        if not src_path:
+            await callback.message.answer("Oldin fayl yuboring.")
             await callback.answer()
             return
 
-        base_name = Path(src_path).stem
-        out_dir = DATA_DIR / f"{base_name}_pages"
-        zip_path, png_paths = pdf_to_png_zip(src_path, out_dir, POPPLER_PATH)
-        await callback.message.answer_document(document=FSInputFile(str(zip_path)))
-        for p in png_paths:
-            safe_unlink(p)
-        safe_unlink(zip_path)
-        safe_rmdir(out_dir)
-        await callback.answer()
-        return
+        if callback.data == "convert:png2pdf":
+            pdf_path = png_to_pdf(src_path)
+            await callback.message.answer_document(document=FSInputFile(pdf_path))
+            safe_unlink(Path(src_path))
+            safe_unlink(Path(pdf_path))
+            await callback.answer()
+            return
 
-    await callback.message.answer("Bu format hozircha yo‘q.")
-    await callback.answer()
+        if callback.data == "convert:pdf2png":
+            if not src_path.lower().endswith(".pdf"):
+                await callback.message.answer("Bu fayl PDF emas.")
+                await callback.answer()
+                return
+
+            base_name = Path(src_path).stem
+            out_dir = DATA_DIR / f"{base_name}_pages"
+            zip_path, png_paths = pdf_to_png_zip(src_path, out_dir, POPPLER_PATH)
+            await callback.message.answer_document(document=FSInputFile(str(zip_path)))
+            for p in png_paths:
+                safe_unlink(p)
+            safe_unlink(zip_path)
+            safe_rmdir(out_dir)
+            await callback.answer()
+            return
+
+        await callback.message.answer("Bu format hozircha yo‘q.")
+        await callback.answer()
+    except Exception:
+        await callback.message.answer("Xatolik bo‘ldi. Keyinroq urinib ko‘ring.")
+        await callback.answer()
