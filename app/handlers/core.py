@@ -15,6 +15,14 @@ router = Router()
 POPPLER_PATH = os.getenv("POPPLER_PATH")
 logger = logging.getLogger(__name__)
 
+MAX_MB = 10
+ALLOWED_EXT = {".pdf", ".png", ".jpg", ".jpeg"}
+
+
+def is_allowed(filename: str, size: int) -> bool:
+    ext = Path(filename).suffix.lower()
+    return ext in ALLOWED_EXT and size <= MAX_MB * 1024 * 1024
+
 
 def build_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -40,6 +48,9 @@ async def help_handler(message: Message) -> None:
 async def file_handler(message: Message) -> None:
     doc = message.document
     file_name = doc.file_name or f"file_{doc.file_id}"
+    if not is_allowed(file_name, doc.file_size or 0):
+        await message.answer("Fayl turi yoki hajmi ruxsat etilmagan.")
+        return
     file_path = DATA_DIR / file_name
 
     file = await message.bot.get_file(doc.file_id)
@@ -54,6 +65,9 @@ async def file_handler(message: Message) -> None:
 async def photo_handler(message: Message) -> None:
     photo = message.photo[-1]
     file_name = f"photo_{photo.file_id}.png"
+    if not is_allowed(file_name, photo.file_size or 0):
+        await message.answer("Rasm hajmi ruxsat etilmagan.")
+        return
     file_path = DATA_DIR / file_name
 
     file = await message.bot.get_file(photo.file_id)
