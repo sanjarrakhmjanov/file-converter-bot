@@ -7,10 +7,10 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from aiogram.types.input_file import FSInputFile
 
 from app.services.conversion import pdf_to_png_zip, png_to_pdf
+from app.services.storage import get_last_upload, save_upload
 from app.utils.files import DATA_DIR, safe_rmdir, safe_unlink
 
 router = Router()
-LAST_UPLOAD: dict[int, str] = {}
 POPPLER_PATH = os.getenv("POPPLER_PATH")
 
 
@@ -43,7 +43,7 @@ async def file_handler(message: Message) -> None:
     file = await message.bot.get_file(doc.file_id)
     await message.bot.download_file(file.file_path, destination=file_path)
 
-    LAST_UPLOAD[message.from_user.id] = str(file_path)
+    save_upload(message.from_user.id, str(file_path))
     await message.answer(f"Qabul qilindi: {file_name}")
     await message.answer("Format tanlang:", reply_markup=build_keyboard())
 
@@ -57,14 +57,14 @@ async def photo_handler(message: Message) -> None:
     file = await message.bot.get_file(photo.file_id)
     await message.bot.download_file(file.file_path, destination=file_path)
 
-    LAST_UPLOAD[message.from_user.id] = str(file_path)
+    save_upload(message.from_user.id, str(file_path))
     await message.answer("Format tanlang:", reply_markup=build_keyboard())
 
 
 @router.callback_query(F.data.startswith("convert:"))
 async def convert_choice(callback: CallbackQuery) -> None:
     user_id = callback.from_user.id
-    src_path = LAST_UPLOAD.get(user_id)
+    src_path = get_last_upload(user_id)
 
     if not src_path:
         await callback.message.answer("Oldin fayl yuboring.")
