@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from aiogram.types.input_file import FSInputFile
 
 from app.services.conversion import pdf_to_png_zip, png_to_pdf
-from app.services.storage import get_last_upload, save_upload, update_status
+from app.services.storage import get_last_upload, save_upload, update_status, get_last_status
 from app.utils.files import DATA_DIR, safe_rmdir, safe_unlink
 
 router = Router()
@@ -40,8 +40,18 @@ async def start_handler(message: Message) -> None:
 async def help_handler(message: Message) -> None:
     await message.answer(
         "/start - Botni ishga tushurish\n"
-        "/help - Yordam olish"
+        "/help - Yordam olish\n"
+        "/status - Oxirgi holat"
     )
+
+
+@router.message(Command("status"))
+async def status_handler(message: Message) -> None:
+    status = get_last_status(message.from_user.id)
+    if not status:
+        await message.answer("Hali hech narsa yo‘q.")
+        return
+    await message.answer(f"Oxirgi holat: {status}")
 
 
 @router.message(F.document)

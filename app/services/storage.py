@@ -70,3 +70,15 @@ def get_last_upload(user_id: int) -> str | None:
     row = cur.fetchone()
     conn.close()
     return row[0] if row else None
+
+
+def get_last_status(user_id: int) -> str | None:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT status FROM uploads WHERE user_id = ? ORDER BY id DESC LIMIT 1",
+        (user_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row else None
